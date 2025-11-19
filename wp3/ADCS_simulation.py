@@ -47,7 +47,6 @@ class SatSym ():
         rw_t=rw_command*(1+2*self.rw_inaccuracy*np.random.rand(1)[0]-self.rw_inaccuracy)
         return rw_t
     
-
     def total_torque(self,theta, rw_command, t_command):
         return self.solar_torque(theta) + self.gravity_torque() + self.magnetic_torque(theta) + self.drag_torque() + self.rw_torque(rw_command)
 
