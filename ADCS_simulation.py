@@ -32,7 +32,6 @@ class SatSym ():
         if theta>self.theta_eclipse or theta< -self.theta_eclipse:
             return np.array([0,0,0])
         T_y=self.solar_constant/self.c*self.A_max*(1+self.reflectivity)*np.cos(theta-self.phi0)*self.cp_to_cm_dist
-        
         return np.array([0,T_y,0])
     
     def gravity_torque(self):
@@ -48,15 +47,14 @@ class SatSym ():
         rw_t=rw_command*(1+2*self.rw_inaccuracy*np.random.rand(1)[0]-self.rw_inaccuracy)
         return rw_t
     
-    def thruster_torque(self, t_command):
-        t_t=t_command*(1+2*self.rw_inaccuracy*np.random.rand(1)[0]-self.rw_inaccuracy)
-        return t_t
 
     def total_torque(self,theta, rw_command, t_command):
-        return self.solar_torque(theta) + self.gravity_torque() + self.magnetic_torque(theta) + self.drag_torque() + self.rw_torque(rw_command) + self.thruster_torque(t_command)
+        return self.solar_torque(theta) + self.gravity_torque() + self.magnetic_torque(theta) + self.drag_torque() + self.rw_torque(rw_command)
 
     def step(self, true_anomaly, angvec, omega, dt, rw_command, t_command):
-        alpha=np.linalg.inv(self.MoI)@self.total_torque(true_anomaly, rw_command, t_command)-np.cross(omega, self.MoI@omega)
+        alpha=np.linalg.inv(self.MoI)@(self.total_torque(true_anomaly, rw_command, t_command)) #-np.cross(omega, self.MoI@omega))
+        alpha_rw= np.linalg.inv(self.MoI)@self.rw_torque(rw_command)
+        alpha0=alpha-alpha_rw
         omega+=alpha*dt
         angvec+=omega*dt
-        return angvec, omega, alpha
+        return angvec, omega, alpha, alpha_rw, alpha0
