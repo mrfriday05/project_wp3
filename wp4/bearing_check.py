@@ -41,8 +41,8 @@ def bearing_check(lug, Fx, Fz, margin = 1.0):
         fastener.bearing_t3 = True
         Fx_tot = Fx_lst[i]
         Fz_tot = Fz_lst[i]
-        sigma_bearing = (Fx_tot**2 + Fz_tot**2)**0.5 / (lug.t2*lug.D2)
-        sigma_bearing_wall = (Fx_tot**2 + Fz_tot**2)**0.5 / (lug.t3*lug.D2)
+        sigma_bearing = (Fx_tot**2 + Fz_tot**2)**0.5 / (lug.t2*fastener.D2)
+        sigma_bearing_wall = (Fx_tot**2 + Fz_tot**2)**0.5 / (lug.t3*fastener.D2)
         if sigma_bearing > lug.sigma_allow:
             fastener.bearing_t2 = False
         if sigma_bearing_wall > lug.sigma_allow_lug_wall:

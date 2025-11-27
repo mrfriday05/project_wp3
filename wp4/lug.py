@@ -14,4 +14,3 @@ class Lug:
         self.sigma_allow = sigma_allow  
         self.sigma_allow_lug_wall = sigma_allow_lug_wall
         self.fastenerlst = fastenerlst
-    
