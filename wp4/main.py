@@ -54,7 +54,7 @@ luglst=[
 #========== End of Design Inputs =============
 #========== Loads Calculation ============
 
-loads_ = {
+loads_ = { 
     "R_x": 149, #loads()[0],
     "R_y": 473, #loads()[1],
     "R_z": 149, #loads()[2],
@@ -71,7 +71,7 @@ loads_ = {
 
 #========== Bearing Check ============
 
-#print(loads_["R_x"])
+print(loads_["R_x"])
 
 fig, ax = plt.subplots()
 
