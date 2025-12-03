@@ -3,8 +3,8 @@
 def pattern_check (lug):
     x_length = lug.x_length
     z_length = lug.z_length
-    x = lug.fastenerlist[0].x
-    z = lug.fastenerlist[0].z
+    x = lug.fastenerlst[0].x
+    z = lug.fastenerlst[0].z
     d2 = lug.D2
     e1 = e2 = 1.5 * d2
 

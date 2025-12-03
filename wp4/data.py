@@ -2,7 +2,18 @@ import math
 
 
 def fastener_geometry(type):
-    if type == "M4":
+    if type == "M2":
+        d = 2e-3
+        p = 0.4e-3
+        d_minor = 1.6e-3
+        d_head = 5.0e-3
+
+    elif type == "M3":
+        d = 3e-3
+        p = 0.5e-3
+        d_minor = 2.5e-3
+        d_head = 6.0e-3
+    elif type == "M4":
         d = 4e-3
         p = 0.7e-3
         d_minor = 3.141e-3
@@ -46,7 +57,7 @@ def material_properties(material):
     print(material)
     if material == "Steel":
         E = 210e9               # Pa
-        yield_stress = 370e6    # Pa
+        yield_stress = 470e6    # Pa
         alpha = 1.2e-5          # 1/K
     elif material == "Aluminum":
         E = 71.7e9              # Pa

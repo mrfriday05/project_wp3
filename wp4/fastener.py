@@ -19,3 +19,4 @@ class Fastener:
         self.bearing_t2 = True
         self.bearing_t3 = True
         self.pull_trough = True
+        self.pull_trough_thermal = True

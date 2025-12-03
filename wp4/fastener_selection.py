@@ -20,7 +20,7 @@ def force_ratio(fastener, lug):
 def fastener_yield_check(lug, F_y):
     for fastener in lug.fastenerlst:
         dr=force_ratio(fastener, lug)
-        F_f=F_y*dr
+        F_f=F_y*dr/len(lug.fastenerlst)
         if F_f/fastener.A_eff>fastener.yield_stress:
             fastener.yield_handling=False
     return
