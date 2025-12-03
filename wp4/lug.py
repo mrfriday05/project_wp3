@@ -1,6 +1,6 @@
 from fastener import Fastener
 class Lug:
-    def __init__(self,x_length, z_length, t1, t2, t3, D1, D2, h, x, z,sigma_allow, sigma_allow_lug_wall, fastenerlst):
+    def __init__(self,x_length, z_length, t1, t2, t3, D1, D2, h, x, z,sigma_allow, sigma_allow_lug_wall, fastenerlst, alpha, alpha_back):
         self.x_length = x_length
         self.z_length = z_length
         self.t1 = t1
@@ -11,6 +11,8 @@ class Lug:
         self.h = h
         self.x = x
         self.z = z
+        self.alpha=alpha
+        self.alpha_back=alpha_back
         self.sigma_allow = sigma_allow  
         self.sigma_allow_lug_wall = sigma_allow_lug_wall
         self.fastenerlst = fastenerlst

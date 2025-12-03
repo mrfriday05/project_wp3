@@ -5,7 +5,7 @@ class Fastener:
         self.x = x
         self.z = z
         d, A_nom, A_minor, A_eff, d_head = data.fastener_geometry(type)
-        E, yield_stress, _, alpha = data.material_properties(material)
+        E, yield_stress, alpha = data.material_properties(material)
         self.A = A_nom
         self.A_minor = A_minor
         self.A_eff = A_eff
@@ -14,6 +14,8 @@ class Fastener:
         self.E=E
         self.yield_stress=yield_stress
         self.alpha=alpha
-        self.yield_handling=True
+        self.pull_trough_force = 0
+        self.yield_handling = True
         self.bearing_t2 = True
         self.bearing_t3 = True
+        self.pull_trough = True

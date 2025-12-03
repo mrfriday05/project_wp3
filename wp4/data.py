@@ -43,22 +43,20 @@ def fastener_geometry(type):
     return d, A_nom, A_minor, A_eff, d_head
 
 def material_properties(material):
+    print(material)
     if material == "Steel":
-        E = 210e9  # Pa
-        yield_stress = 370e6  # Pa
-        bearing_stress = 530e6  # Pa
-        alpha = 1.2e-5  # 1/K
+        E = 210e9               # Pa
+        yield_stress = 370e6    # Pa
+        alpha = 1.2e-5          # 1/K
     elif material == "Aluminum":
-        E = 70e9  # Pa
-        yield_stress = 300e6  # Pa
-        bearing_stress = 450e6  # Pa
-        alpha = 2.3e-5  # 1/K
+        E = 71.7e9              # Pa
+        yield_stress = 506e6    # Pa
+        alpha = 2.3e-5          # 1/K
     elif material == "Titanium":
-        E = 116e9  # Pa
-        yield_stress = 880e6  # Pa
-        bearing_stress = 600e6  # Pa
-        alpha = 8.6e-6  # 1/K
+        E = 116e9               # Pa
+        yield_stress = 880e6    # Pa
+        alpha = 8.6e-6          # 1/K
     else:
-        raise ValueError("Unsupported material type")
+        raise ValueError(f"Unsupported material type: {material}")
     
-    return E, yield_stress, bearing_stress, alpha
+    return E, yield_stress, alpha

@@ -1,40 +1,38 @@
 import numpy as np
 from fastener import Fastener
 from lug import Lug
-from math import sqrt,pi
+from math import sqrt,pi, tau
 
-# Ranking creation
-nf=len(Lug.fastenerlst)
-rank=np.zeros(nf)
-
-def pull_through_forces(Mz,Fy,nf,A,r):
-    global rank
+def pull_through_forces(Mz,Fy,lug):
     # Variables 
-    for i in range(nf):
-        A[i]=Lug.fastenerlst[i].A
-        r[i]=sqrt(Lug.fastenerlst[i].x**2+Lug.fastenerlst[i].z**2) # This assumes the cg of the fasteners is the center of the lug
+    nf=len(lug.fastenerlst)
+    rlst=[]
+    for i in range(len(lug.fastenerlst)):
+        rlst.append(sqrt(lug.fastenerlst[i].x**2+lug.fastenerlst[i].z**2))
     
     # Pull through forces
-    Fpi=0.0
-    FpMz=np.zeros(nf)
+    Fpi=Fy/nf
+    s=0.0
+    for j in range(nf):
+        s=s+lug.fastenerlst[j].A*rlst[j]**2
 
     # Equations
     k=0
     for i in range(nf):
-        Fpi=Fy/nf
-        s=0.0
-        for j in range(nf):
-            s=s+A[j]*r[j]**2
-        FpMz[i]=(Mz*A[i]*r[i])/s
+        FpMz=(Mz*lug.fastenerlst[i].A*rlst[i])/s
         F=Fpi+FpMz
-        rank[k]=F
+        lug.fastenerlst[i].pull_through_force=F
         k+=1
 
-    # Ranking fasteners....
-    return rank
-
+        tau=F/(pi*lug.fastenerlst[i].D2/2*(lug.t2+lug.t3))
+        print(tau)
+        if tau>lug.sigma_allow/sqrt(3) or tau>lug.sigma_allow_wall/sqrt(3):
+            lug.fastenerlst[i].pull_through=False
+    return
 # ------------------------------------------------
-# Shear stress 
+# Shear stress
+
+''' 
 def pull_through_shear_stress(Y,dfo,dfi,t2,t3,nf):
     global rank
 
@@ -47,7 +45,6 @@ def pull_through_shear_stress(Y,dfo,dfi,t2,t3,nf):
         if tau<Y:
             fail[i]=1
 
-    for i in range(nf):
-        if fail[i]==0:
-            return 'fastener nr.:',i+1,' failed'
+    
     # iterate with t2,t3
+'''
