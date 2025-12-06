@@ -18,5 +18,5 @@ class Fastener:
         self.yield_handling = True
         self.bearing_t2 = True
         self.bearing_t3 = True
-        self.pull_trough = True
-        self.pull_trough_thermal = True
+        self.pull_through = True
+        self.pull_through_thermal = True

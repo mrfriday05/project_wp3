@@ -51,7 +51,22 @@ def loads (a_y=8.5,a_x=3,a_z=3,m_A=0.5,m_SA=4.575,h_A=0.5,l_A=0.1,l_SA=1.25,widt
     M_4 = 0
 
     N_z = m_A * a_z
-
-
-    return R_x, R_y, R_z, N_x, N_y, N_z, M_1, M_2, M_3, M_4, M_5, M_6
+    #change of coordinate systems
+    
+    loads = { 
+    "R_x": 149.4, #R_z,
+    "R_y": 149.4, #R_x,
+    "R_z": 473, #R_y,
+    "N_x": 134.6,#N_z,
+    "N_y": 134.6,#N_x,
+    "N_z": 426.4,#N_y,
+    "M_1": 84.2,#M_3,
+    "M_2": 84.2,#M_1,
+    "M_3": 27.1, #M_2,
+    "M_4": M_6,
+    "M_5": M_4,
+    "M_6": M_5
+    }
+    return loads
+    #return R_x, R_y, R_z, N_x, N_y, N_z, M_1, M_2, M_3, M_4, M_5, M_6
 

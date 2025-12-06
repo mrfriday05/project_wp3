@@ -23,20 +23,18 @@ def pull_through_forces(Mx,Mz,Fy,lug):
     for n in range(nf):
         print (n)
         FpMz=(Mz*lug.fastenerlst[n].A*lug.fastenerlst[n].x)/sx
-        print(f"FpMz for fastener {n}: {FpMz}")
+        
         FpMx=(Mx*lug.fastenerlst[n].A*lug.fastenerlst[n].z)/sz
-        print(f"FpMx for fastener {n}: {FpMx}")
+        
         F_tot=Fpi+FpMz+FpMx
         #lug.fastenerlst[i].pull_through_force=F
 
-        print(f"Total pull through force for fastener {n}: {F_tot}")
         tau=F_tot/(3.14*lug.fastenerlst[n].D2/2*(lug.t2+lug.t3))
-        print(f"Shear stress for fastener {n}: {tau}")
-        print(lug.sigma_allow/sqrt(3))
+        
         if abs(tau)>(lug.sigma_allow/sqrt(3)) or abs(tau)>(lug.sigma_allow_lug_wall/sqrt(3)):
             lug.fastenerlst[n].pull_through=False
             print(f"Fastener {n} fails pull through check.")
-        
+            print(int(lug.fastenerlst[n].pull_through))
     return
 # ------------------------------------------------
 # Shear stress

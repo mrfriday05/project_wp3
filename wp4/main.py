@@ -1,6 +1,6 @@
 from lug import Lug
 from fastener import Fastener
-from equilibrium import loads 
+
 from fastener_pattern import pattern_check
 from pull_through_check import pull_through_forces
 import numpy as np
@@ -17,22 +17,23 @@ import MMOI_PIN as moi
 
 #Lug configuration (list of the coordinates centre of the lugs)
 
-xdist_lug = 0.014      #m
-zdist_lug = 0.007       #m
+xdist_lug = 0.007      #m
+zdist_lug = 0.0070      #m
 
 fastener_type="M2"
 fastener_d = dt.fastener_geometry(fastener_type)[0]  #m
-safety_factor=6
+safety_factor=4
 
-lug_material=   "Aluminum"
-wall_material=  "Aluminum"
+lug_material=   "Titanium"
+wall_material=  "Titanium"
+fastener_material="Steel"
 
 luglst=[
-    Lug(x_length=0.04,  #m
+    Lug(x_length=0.02,  #m
         z_length=0.02,  #m
         t1=0.002,       #m
-        t2=0.001,       #m
-        t3=0.001,       #m
+        t2=0.0080,        #m
+        t3=0.005,       #m
         D1=0.01,        #m
         D2=fastener_d,  #m
         h=0.05,         #m   
@@ -43,48 +44,43 @@ luglst=[
         sigma_allow=dt.material_properties(lug_material)[1],  #Pa
         sigma_allow_lug_wall=dt.material_properties(wall_material)[1],  #Pa
         fastenerlst=[
-            Fastener(x=-xdist_lug,z=-zdist_lug, type=fastener_type, material='Steel'),
-            Fastener(x= xdist_lug,z=-zdist_lug, type=fastener_type, material='Steel'),
-            Fastener(x=-xdist_lug,z= zdist_lug, type=fastener_type, material='Steel'),
-            Fastener(x= xdist_lug,z= zdist_lug, type=fastener_type, material='Steel')
+            Fastener(x=-xdist_lug,z=-zdist_lug, type=fastener_type, material=fastener_material),
+            Fastener(x= xdist_lug,z=-zdist_lug, type=fastener_type, material=fastener_material),
+            Fastener(x=-xdist_lug,z= zdist_lug, type=fastener_type, material=fastener_material),
+            Fastener(x= xdist_lug,z= zdist_lug, type=fastener_type, material=fastener_material)
         ]
     )
 ]
 
 #========== End of Design Inputs =============
 #========== Loads Calculation ============
-
-loads_ = { 
-    "R_x": 149, #loads()[0],
-    "R_y": 473, #loads()[1],
-    "R_z": 149, #loads()[2],
-    "N_x": loads()[3],
-    "N_y": loads()[4],
-    "N_z": loads()[5],
-    "M_1": 27.1, #loads()[6],
-    "M_2": loads()[7],
-    "M_3": loads()[8],
-    "M_4": loads()[9],
-    "M_5": loads()[10],
-    "M_6": loads()[11]
-    }
+loads = { 
+    "R_x": 149.4,
+    "R_y": 149.4,
+    "R_z": 473,
+    "N_x": 134.6,
+    "N_y": 134.6,
+    "N_z": 426.4,
+    "M_1": 84.2,
+    "M_2": 84.2,
+    "M_3": 27.1, 
+}
 
 #========== Bearing Check ============
 
-print(loads_["R_x"])
 
 fig, ax = plt.subplots()
 
 for lug in luglst:
-    # Run bearing checks
+    # Run checks
     lug_bearing=bc.bearing_check(lug, Fx=loads_["R_x"]*(safety_factor+1), Fz=loads_["R_z"]*(safety_factor+1))
     lug_pattern=pattern_check(lug)
     fs.fastener_yield_check(lug,loads_["R_y"]*(safety_factor+1))
     pull_through_forces(loads_["M_1"]*(safety_factor+1), loads_["M_3"]*(safety_factor+1), loads_["R_y"]*(safety_factor+1), lug)
     tc.thermal_stress_check_oup(lug, Mz=loads_["M_3"]*(safety_factor+1), Fy=loads_["R_y"]*(safety_factor+1))
-    print("pull through, fastener_yield, bearing_t2, bearing_t3")
+    print("pull through, fastener_yield, bearing_t2, bearing_t3, thermal")
     for i, fastener in enumerate(lug.fastenerlst):
-        print(f"fastener_{i}: {int(fastener.pull_trough)} {int(fastener.yield_handling)} {int(fastener.bearing_t2)} {int(fastener.bearing_t3)} {int(fastener.pull_trough_thermal)}")        
+        print(f"fastener_{i}: {int(fastener.pull_through)} {int(fastener.yield_handling)} {int(fastener.bearing_t2)} {int(fastener.bearing_t3)} {int(fastener.pull_through_thermal)}")        
 
     # Lug position offset
     x0 = lug.x
@@ -126,5 +122,5 @@ check = pattern_check(luglst[0])
 ax.set_aspect('equal', adjustable='box')
 ax.relim()
 ax.autoscale_view()
-print (moi.MOI_PIN(luglst[0])) 
+#print (moi.MOI_PIN(luglst[0])) 
 plt.show()
