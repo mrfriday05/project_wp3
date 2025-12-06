@@ -11,6 +11,7 @@ import fastener_selection as fs
 import data as dt
 import thermal_check as tc
 import MMOI_PIN as moi
+import flange_design as fd
 
 #========== Design Inputs (everything should be SI) =============
 
@@ -54,7 +55,7 @@ luglst=[
 
 #========== End of Design Inputs =============
 #========== Loads Calculation ============
-loads = { 
+loads_ = { 
     "R_x": 149.4,
     "R_y": 149.4,
     "R_z": 473,
@@ -81,6 +82,24 @@ for lug in luglst:
     print("pull through, fastener_yield, bearing_t2, bearing_t3, thermal")
     for i, fastener in enumerate(lug.fastenerlst):
         print(f"fastener_{i}: {int(fastener.pull_through)} {int(fastener.yield_handling)} {int(fastener.bearing_t2)} {int(fastener.bearing_t3)} {int(fastener.pull_through_thermal)}")        
+
+
+    # Lug flange dimensions
+    M_z = max(loads_["M_1"], loads_["M_2"])
+    stress_t = 572  # Material ultimate tensile strength in MPa
+    W = 100  # M from the figure in mm, this is what is actually being used for the iteration
+
+    D, T, E = fd.lug_flange_dimensions(W)  # All in mm
+    F = fd.lug_tension(stress_t, W, D, T)  # All in N
+    stress_b = fd.lug_bending(W, D, T, M_z)  # All in MPa
+    load_check = fd.check(stress_t, loads_["N_x"], loads_["N_y"], F, stress_b)
+
+    print(D, T, E, F, stress_b)
+    print(load_check)
+
+    # If it spits out true, the material or W can be changed to something smaller / weaker,
+    # however, this will probably withstand the loads even if its lead-thin 
+
 
     # Lug position offset
     x0 = lug.x
