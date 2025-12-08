@@ -73,11 +73,11 @@ fig, ax = plt.subplots()
 
 for lug in luglst:
     # Run checks
-    lug_bearing=bc.bearing_check(lug, Fx=loads_["R_x"]*(safety_factor+1), Fz=loads_["R_z"]*(safety_factor+1))
+    lug_bearing=bc.bearing_check(lug, Fx=loads["R_x"]*(safety_factor+1), Fz=loads["R_z"]*(safety_factor+1))
     lug_pattern=pattern_check(lug)
-    fs.fastener_yield_check(lug,loads_["R_y"]*(safety_factor+1))
-    pull_through_forces(loads_["M_1"]*(safety_factor+1), loads_["M_3"]*(safety_factor+1), loads_["R_y"]*(safety_factor+1), lug)
-    tc.thermal_stress_check_oup(lug, Mz=loads_["M_3"]*(safety_factor+1), Fy=loads_["R_y"]*(safety_factor+1))
+    fs.fastener_yield_check(lug,loads["R_y"]*(safety_factor+1))
+    pull_through_forces(loads["M_1"]*(safety_factor+1), loads["M_3"]*(safety_factor+1), loads["R_y"]*(safety_factor+1), lug)
+    tc.thermal_stress_check_oup(lug, Mz=loads["M_3"]*(safety_factor+1), Fy=loads["R_y"]*(safety_factor+1))
     print("pull through, fastener_yield, bearing_t2, bearing_t3, thermal")
     for i, fastener in enumerate(lug.fastenerlst):
         print(f"fastener_{i}: {int(fastener.pull_through)} {int(fastener.yield_handling)} {int(fastener.bearing_t2)} {int(fastener.bearing_t3)} {int(fastener.pull_through_thermal)}")        
