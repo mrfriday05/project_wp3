@@ -55,9 +55,9 @@ def fastener_geometry(type):
 
 def material_properties(material):
     #print(material)
-    if material == "Steel":
+    if material == "Steel":     #D6AC
         E = 210e9               # Pa
-        yield_stress = 470e6    # Pa
+        yield_stress = 1724e6    # Pa
         alpha = 1.2e-5          # 1/K
     elif material == "Aluminum":
         E = 71.7e9              # Pa
