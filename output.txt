@@ -1,0 +1,566 @@
+--- File Structure ---
+wp4/
+  2nd_MOI_PIN.py
+  MMOI_PIN.py
+  bearing_check.py
+  data.py
+  fastener.py
+  fastener_pattern.py
+  fastener_selection.py
+  flange_design.py
+  lug.py
+  main.py
+  pull_through_check.py
+  thermal_check.py
+
+--- File Contents ---
+
+## wp4\2nd_MOI_PIN.py ##
+
+
+def MOI_PIN (lug):
+
+    w = lug.z_length
+    D1 = lug.D1
+    b = lug.t1
+    h = (w-D1)/2
+    d = D1/2 + h/2
+    MOI = 2 * ((b * h^3)/12) + (b*h) * d**2
+
+    return MOI 
+
+## wp4\MMOI_PIN.py ##
+
+
+def MOI_PIN (lug):
+
+    w = lug.z_length
+    D1 = lug.D1
+    b = lug.t1
+    h = (w-D1)/2
+
+    MOI = 2 * (( b * h**3)/12)
+
+    return MOI 
+
+## wp4\bearing_check.py ##
+from lug import Lug
+import matplotlib.pyplot as plt
+def cg(lug):
+    Ax = 0
+    Az = 0
+    
+    for fastener in lug.fastenerlst:
+        Ax+=fastener.A*fastener.x
+        Az+=fastener.A*fastener.z
+
+    cgx = Ax/sum([fastener.A for fastener in lug.fastenerlst])
+    cgz = Az/sum([fastener.A for fastener in lug.fastenerlst])
+    return (cgx,cgz)
+
+def Finplane(lug, F):
+    finplane = F/len(lug.fastenerlst)
+    return finplane
+
+def Finplanetot(lug, Fx, Fz):
+    finplanex=Finplane(lug, Fx)
+    finplanez=Finplane(lug, Fz)
+    cgx,cgz = cg(lug)
+    Mcgy = cgx*Fz+ cgz*Fx
+    Ar2 =0
+    Fx_lst = []
+    Fz_lst = []
+    for fastener in lug.fastenerlst:
+        r2 = fastener.x**2 + fastener.z**2
+        Ar2 += r2*fastener.A
+    
+    for fastener in lug.fastenerlst:
+        Fx_lst.append(Mcgy*fastener.A*fastener.x/Ar2+finplanex)
+        Fz_lst.append(Mcgy*fastener.A*fastener.z/Ar2+finplanez)
+    return Fx_lst, Fz_lst
+
+def bearing_check(lug, Fx, Fz):
+    Fx_lst, Fz_lst = Finplanetot(lug, Fx, Fz)
+    not_failed = True
+    for i, fastener in enumerate(lug.fastenerlst):
+        fastener.bearing_t2 = True
+        fastener.bearing_t3 = True
+        Fx_tot = Fx_lst[i]
+        Fz_tot = Fz_lst[i]
+        sigma_bearing = (Fx_tot**2 + Fz_tot**2)**0.5 / (lug.t2*fastener.D2)
+        sigma_bearing_wall = (Fx_tot**2 + Fz_tot**2)**0.5 / (lug.t3*fastener.D2)
+        if sigma_bearing > lug.sigma_allow:
+            fastener.bearing_t2 = False
+        if sigma_bearing_wall > lug.sigma_allow_lug_wall:
+            fastener.bearing_t3 = False
+    return not_failed
+
+## wp4\data.py ##
+import math
+
+
+def fastener_geometry(type):
+    if type == "M2":
+        d = 2e-3
+        p = 0.4e-3
+        d_minor = 1.6e-3
+        d_head = 5.0e-3
+
+    elif type == "M3":
+        d = 3e-3
+        p = 0.5e-3
+        d_minor = 2.5e-3
+        d_head = 6.0e-3
+    elif type == "M4":
+        d = 4e-3
+        p = 0.7e-3
+        d_minor = 3.141e-3
+        d_head = 7.0e-3
+    elif type == "M5":
+        d = 5e-3
+        p = 0.8e-3
+        d_minor = 4.134e-3
+        d_head = 8.0e-3
+    elif type == "M6":
+        d = 6e-3
+        p = 1.0e-3
+        d_minor = 4.917e-3
+        d_head = 10.0e-3
+    elif type == "M8":
+        d = 8e-3
+        p = 1.25e-3
+        d_minor = 6.466e-3
+        d_head = 13.0e-3
+    elif type == "M10":
+        d = 10e-3
+        p = 1.5e-3
+        d_minor = 8.159e-3
+        d_head = 16.0e-3
+    elif type == "M12":
+        d = 12e-3
+        p = 1.75e-3
+        d_minor = 9.853e-3
+        d_head = 18.0e-3
+    else:
+        raise ValueError("Unsupported fastener type")
+
+    # Areas
+    A_nom = math.pi * (d**2) / 4
+    A_minor = math.pi * (d_minor**2) / 4
+    A_eff = math.pi * (d - 0.9382*p)**2 / 4  # Tensile stress area
+
+    return d, A_nom, A_minor, A_eff, d_head
+
+def material_properties(material):
+    #print(material)
+    if material == "Steel":
+        E = 210e9               # Pa
+        yield_stress = 470e6    # Pa
+        alpha = 1.2e-5          # 1/K
+    elif material == "Aluminum":
+        E = 71.7e9              # Pa
+        yield_stress = 506e6    # Pa
+        alpha = 2.3e-5          # 1/K
+    elif material == "Titanium":
+        E = 116e9               # Pa
+        yield_stress = 880e6    # Pa
+        alpha = 8.6e-6          # 1/K
+    else:
+        raise ValueError(f"Unsupported material type: {material}")
+    
+    return E, yield_stress, alpha
+
+## wp4\fastener.py ##
+import data
+
+class Fastener:
+    def __init__(self,x,z,type, material='Steel'):
+        self.x = x
+        self.z = z
+        d, A_nom, A_minor, A_eff, d_head = data.fastener_geometry(type)
+        E, yield_stress, alpha = data.material_properties(material)
+        self.A = A_nom
+        self.A_minor = A_minor
+        self.A_eff = A_eff
+        self.D2 = d
+        self.D_out = d_head
+        self.E=E
+        self.yield_stress=yield_stress
+        self.alpha=alpha
+        self.pull_trough_force = 0
+        self.yield_handling = True
+        self.bearing_t2 = True
+        self.bearing_t3 = True
+        self.pull_through = True
+        self.pull_through_thermal = True
+
+## wp4\fastener_pattern.py ##
+# As for the 27.11 this is almost working :>, 
+#NOTE : THIS TEST WORKS ONLY FOR METAL 
+def pattern_check (lug):
+    x_length = lug.x_length
+    z_length = lug.z_length
+    x = lug.fastenerlst[0].x
+    z = lug.fastenerlst[0].z
+    d2 = lug.D2
+    e1 = e2 = 1.5 * d2
+
+    if abs(x) > (x_length / 2 - e2) or abs(z) > (z_length / 2 - e1) or abs(x)*2 < 3*d2 or abs(z)*2 < 3*d2:
+        print ("Geometry: False")
+        return False
+    else:
+        print ("Geometry: True")
+        return True
+        
+
+## wp4\fastener_selection.py ##
+import math
+
+def delta_b(fastener, lug):
+    L_hsub=fastener.D2/2*0.5 #hexagonal head submersion depth
+    L_engsub=fastener.D2/2*0.4 #nut-tightened
+    L_nsub=fastener.D2/2*0.4
+    delta_b=1/fastener.E*(L_hsub/fastener.A_eff+L_engsub/fastener.A_minor+(lug.t2+lug.t3)/fastener.A_eff)+L_nsub/fastener.E/fastener.A
+    return delta_b
+
+def delta_a(fastener, lug):
+    delta_a=4*(lug.t2+lug.t3)/(math.pi*fastener.E*(fastener.D_out**2-fastener.D2**2))
+    return delta_a
+
+def force_ratio(fastener, lug):
+    db=delta_b(fastener, lug)
+    da=delta_a(fastener, lug)
+    dr=db/(db+da)
+    return dr
+
+def fastener_yield_check(lug, F_y):
+    for fastener in lug.fastenerlst:
+        dr=force_ratio(fastener, lug)
+        F_f=F_y*dr/len(lug.fastenerlst)
+        if F_f/fastener.A_eff>fastener.yield_stress:
+            fastener.yield_handling=False
+    return
+
+## wp4\flange_design.py ##
+import math
+# Constants
+K_t = 1
+M_s = 0.85
+ratio_W_D = 1.5
+ratio_e_D = 0.75
+ratio_D_t = 4
+
+
+def lug_flange_dimensions(w):  # getting dimensions from ratios
+    d = w / ratio_W_D
+    t = d / ratio_D_t
+    e = ratio_e_D * d
+    return d, t, e
+
+
+def lug_tension(stress, w, d, t):
+    a = t*(w-d)
+    f = (stress * K_t * M_s * a)
+    return f
+
+
+def lug_bending(w, d, t, m):
+    i_zz = 2*(((((w - d)/2)**3 * t)/12) + ((w - d)/2) * t * ((d/2) + ((w - d)/4))**2)
+    y = (w - d)/4
+    bending_stress = (m * 1000 * y)/i_zz
+    return bending_stress
+
+
+def check(stress, n_x, n_y, f, bending_stress):
+    p = math.sqrt(n_x ** 2 + n_y ** 2)
+    if p > f:
+        return False
+    if stress < bending_stress:
+        return False
+
+    return True
+
+
+## wp4\lug.py ##
+from fastener import Fastener
+class Lug:
+    def __init__(self,x_length, z_length, t1, t2, t3, D1, D2, h, x, z,sigma_allow, sigma_allow_lug_wall, fastenerlst, alpha, alpha_back):
+        self.x_length = x_length
+        self.z_length = z_length
+        self.t1 = t1
+        self.t2 = t2
+        self.t3 = t3
+        self.D1 = D1
+        self.D2 = D2
+        self.h = h
+        self.x = x
+        self.z = z
+        self.alpha=alpha
+        self.alpha_back=alpha_back
+        self.sigma_allow = sigma_allow  
+        self.sigma_allow_lug_wall = sigma_allow_lug_wall
+        self.fastenerlst = fastenerlst
+
+## wp4\main.py ##
+from lug import Lug
+from fastener import Fastener
+
+from fastener_pattern import pattern_check
+from pull_through_check import pull_through_forces
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import bearing_check as bc
+import fastener_selection as fs
+import data as dt
+import thermal_check as tc
+import MMOI_PIN as moi
+import flange_design as fd
+
+#========== Design Inputs (everything should be SI) =============
+
+
+#Lug configuration (list of the coordinates centre of the lugs)
+
+xdist_lug = 0.007      #m
+zdist_lug = 0.007      #m
+
+fastener_type="M2"
+fastener_d = dt.fastener_geometry(fastener_type)[0]  #m
+safety_factor=4
+
+lug_material=   "Titanium"
+wall_material=  "Titanium"
+fastener_material="Steel"
+
+luglst=[
+    Lug(x_length=0.02,  #m
+        z_length=0.02,  #m
+        t1=0.002,       #m
+        t2=0.0080,        #m
+        t3=0.005,       #m
+        D1=0.01,        #m
+        D2=fastener_d,  #m
+        h=0.05,         #m   
+        x=0,            #m
+        z=0,            #m
+        alpha=dt.material_properties(lug_material)[2],
+        alpha_back=dt.material_properties(wall_material)[2],
+        sigma_allow=dt.material_properties(lug_material)[1],  #Pa
+        sigma_allow_lug_wall=dt.material_properties(wall_material)[1],  #Pa
+        fastenerlst=[
+            Fastener(x=-xdist_lug,z=-zdist_lug, type=fastener_type, material=fastener_material),
+            Fastener(x= xdist_lug,z=-zdist_lug, type=fastener_type, material=fastener_material),
+            Fastener(x=-xdist_lug,z= zdist_lug, type=fastener_type, material=fastener_material),
+            Fastener(x= xdist_lug,z= zdist_lug, type=fastener_type, material=fastener_material)
+        ]
+    )
+]
+
+#========== End of Design Inputs =============
+#========== Loads Calculation ============
+loads_ = { 
+    "R_x": 149.4,
+    "R_y": 149.4,
+    "R_z": 473,
+    "N_x": 134.6,
+    "N_y": 134.6,
+    "N_z": 426.4,
+    "M_1": 84.2,
+    "M_2": 84.2,
+    "M_3": 27.1, 
+}
+
+#========== Check the Dimensions for each Failure Mode ============
+
+
+fig, ax = plt.subplots()
+
+for lug in luglst:
+    # Run checks
+    lug_bearing=bc.bearing_check(lug, Fx=loads_["R_x"]*(safety_factor+1), Fz=loads_["R_z"]*(safety_factor+1))
+    lug_pattern=pattern_check(lug)
+    fs.fastener_yield_check(lug,loads_["R_y"]*(safety_factor+1))
+    pull_through_forces(loads_["M_1"]*(safety_factor+1), loads_["M_3"]*(safety_factor+1), loads_["R_y"]*(safety_factor+1), lug)
+    tc.thermal_stress_check_oup(lug, Mz=loads_["M_3"]*(safety_factor+1), Fy=loads_["R_y"]*(safety_factor+1))
+    print("pull_through (pt),\n fastener_yield (fy),\n bearing_t2 (b2),\n bearing_t3 (b3),\n thermal(t)")
+    print("Results:")
+    print("             pt fy b2 b3 t")
+    for i, fastener in enumerate(lug.fastenerlst):
+        print(f"fastener_{i}:  {int(fastener.pull_through)}  {int(fastener.yield_handling)}  {int(fastener.bearing_t2)}  {int(fastener.bearing_t3)}  {int(fastener.pull_through_thermal)}")        
+
+
+    # Lug flange dimensions
+    M_z = max(loads_["M_1"], loads_["M_2"])
+    stress_t = dt.material_properties(lug_material)[0]  # Material ultimate tensile strength in MPa
+    W = 30  # M from the figure in mm, this is what is actually being used for the iteration
+
+    D, T, E = fd.lug_flange_dimensions(W)  # All in mm
+    F = fd.lug_tension(stress_t, W, D, T)  # All in N
+    stress_b = fd.lug_bending(W, D, T, M_z)  # All in MPa
+    load_check = fd.check(stress_t, loads_["N_x"], loads_["N_y"], F, stress_b)
+
+    print(D, T, E, F, stress_b)
+    print(f"load_check: {load_check}")
+
+    # If it spits out true, the material or W can be changed to something smaller / weaker,
+    # however, this will probably withstand the loads even if its lead-thin 
+
+
+    # Lug position offset
+    x0 = lug.x
+    z0 = lug.z
+    # Plotting
+    circles = []
+    rects = []
+    for f in lug.fastenerlst:
+
+        # Determine color based on bearing checks
+        if not f.bearing_t2 or not f.bearing_t3:
+            color = 'red'      # fails plate thickness t2
+        elif not f.pull_through:
+            color = 'blue'     # fails lug wall t3
+        else:
+            color = 'green'    # OK
+
+        # Create circle in *data units*
+        circles.append(patches.Circle(
+            (f.x + x0, f.z + z0),
+            radius = lug.D2 / 2,
+            edgecolor='black',
+            facecolor=color,
+            linewidth=2
+        ))
+
+        ax.add_patch(circles[-1])
+    rects.append(patches.Rectangle(
+        (x0 - lug.x_length / 2, z0 - lug.z_length / 2),
+        lug.x_length,
+        lug.z_length,
+        edgecolor='black',
+        facecolor='none',
+        linewidth=2
+    ))
+    ax.add_patch(rects[-1])
+
+ax.set_aspect('equal', adjustable='box')
+ax.relim()
+ax.autoscale_view()
+plt.show()
+
+## wp4\pull_through_check.py ##
+import numpy as np
+from fastener import Fastener
+from lug import Lug
+from math import sqrt,pi, tau
+
+def pull_through_forces(Mx,Mz,Fy,lug):
+    # Variables 
+    nf=len(lug.fastenerlst)
+    rlst=[]
+    for k in range(len(lug.fastenerlst)):
+        rlst.append(sqrt(lug.fastenerlst[k].x**2+lug.fastenerlst[k].z**2))
+    
+    # Pull through forces
+    Fpi=Fy/nf
+    sx=0.0
+    sz=0.0
+    for j in range(nf):
+        sx=sx+lug.fastenerlst[j].A*lug.fastenerlst[j].x**2
+        sz=sz+lug.fastenerlst[j].A*lug.fastenerlst[j].z**2
+    # Equations
+    k=0
+    for n in range(nf):
+        FpMz=(Mz*lug.fastenerlst[n].A*lug.fastenerlst[n].x)/sx
+        
+        FpMx=(Mx*lug.fastenerlst[n].A*lug.fastenerlst[n].z)/sz
+        
+        F_tot=Fpi+FpMz+FpMx
+        #lug.fastenerlst[i].pull_through_force=F
+
+        tau=F_tot/(3.14*lug.fastenerlst[n].D2/2*(lug.t2+lug.t3))
+        
+        if abs(tau)>(lug.sigma_allow/sqrt(3)) or abs(tau)>(lug.sigma_allow_lug_wall/sqrt(3)):
+            lug.fastenerlst[n].pull_through=False
+            print(f"Fastener {n} fails pull through check.")
+    return
+# ------------------------------------------------
+# Shear stress
+
+''' 
+def pull_through_shear_stress(Y,dfo,dfi,t2,t3,nf):
+    global rank
+
+    # Shear stress calc
+    fail=np.zeros(nf)
+    for i in range(nf):
+        # pls make sure Y(tension yield stress for selected material) is known,
+        # formula is too ugly and long
+        tau=rank[i]/(pi*dfi*(t2+t3))
+        if tau<Y:
+            fail[i]=1
+
+    
+    # iterate with t2,t3
+'''
+
+## wp4\thermal_check.py ##
+import numpy as np
+from fastener import Fastener
+from lug import Lug
+from math import sqrt,pi
+from pull_through_check import pull_through_forces as ptf
+import fastener_selection as fs
+
+# Reference temp of Delft is Tref=288.15 K and Twork are temp from wp2
+# Alphas are the thermal expansions coeff of the fastener, back-up wall and s/c wall
+# Asw is the stiffness area of the fastener(???) and Ef is Young modulus of fastener
+# phi is smth from app B(???)
+
+# Thermal stress in back-up wall
+def thermal_load_bakcupwall(fastener, lug, Tref=288.15,Twmax=284.4,Twmin=272.15):
+    dTmax=Twmax-Tref
+    dTmin=Twmin-Tref
+    phi=fs.force_ratio(fastener, lug)
+    
+    Fmax=dTmax*fastener.E*fastener.A*(1-phi)*(fastener.alpha-lug.alpha)
+    Fmin=dTmin*fastener.E*fastener.A*(1-phi)*(fastener.alpha-lug.alpha)
+    return max(abs(Fmax),abs(Fmin))
+
+def thermal_load_scwall(fastener, lug, Tref=288.15,Twmax=284.4,Twmin=272.15):
+    dTmax=Twmax-Tref
+    dTmin=Twmin-Tref
+    phi=fs.force_ratio(fastener, lug)
+    Fmax=dTmax*fastener.E*fastener.A*(1-phi)*(fastener.alpha-lug.alpha_back)
+    Fmin=dTmin*fastener.E*fastener.A*(1-phi)*(fastener.alpha-lug.alpha_back)
+    return max(abs(Fmax),abs(Fmin))
+
+def thermal_stress_check_oup(lug, Tref=288.15,Twmax=284.4,Twmin=272.15, Mz=0, Fy=0):
+    
+    nf=len(lug.fastenerlst)
+    rlst=[]
+    for i in range(len(lug.fastenerlst)):
+        rlst.append(sqrt(lug.fastenerlst[i].x**2+lug.fastenerlst[i].z**2))
+    
+    # Pull through forces
+    Fpi=Fy/nf
+    s=0.0
+    for j in range(nf):
+        s=s+lug.fastenerlst[j].A*rlst[j]**2
+    
+    # Equations
+    k=0
+    for i in range(nf):
+        F_t_fastener=thermal_load_bakcupwall(lug.fastenerlst[0], lug, Tref,Twmax,Twmin)
+        F_t_fastener_sc=thermal_load_scwall(lug.fastenerlst[0], lug, Tref,Twmax,Twmin)
+        FpMz=(Mz*lug.fastenerlst[i].A*rlst[i])/s
+        F=Fpi+FpMz+F_t_fastener+F_t_fastener_sc
+        lug.fastenerlst[i].pull_through_force=F
+        k+=1
+
+        tau=F/(pi*lug.fastenerlst[i].D2/2*(lug.t2+lug.t3))
+        #print(tau)
+        if tau>lug.sigma_allow/sqrt(3) or tau>lug.sigma_allow_lug_wall/sqrt(3):
+            lug.fastenerlst[i].pull_trough_thermal=False
+    return
+

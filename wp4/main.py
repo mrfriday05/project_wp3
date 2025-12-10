@@ -15,13 +15,12 @@ import flange_design as fd
 
 #========== Design Inputs (everything should be SI) =============
 
-
 #Lug configuration (list of the coordinates centre of the lugs)
 
-xdist_lug = 0.007      #m
-zdist_lug = 0.0070      #m
+xdist_lug = 0.009      #m
+zdist_lug = 0.009      #m
 
-fastener_type="M2"
+fastener_type="M4"
 fastener_d = dt.fastener_geometry(fastener_type)[0]  #m
 safety_factor=4
 
@@ -30,8 +29,8 @@ wall_material=  "Titanium"
 fastener_material="Steel"
 
 luglst=[
-    Lug(x_length=0.02,  #m
-        z_length=0.02,  #m
+    Lug(x_length=0.03,  #m
+        z_length=0.03,  #m
         t1=0.002,       #m
         t2=0.0080,        #m
         t3=0.005,       #m
@@ -67,27 +66,29 @@ loads_ = {
     "M_3": 27.1, 
 }
 
-#========== Bearing Check ============
+#========== Check the Dimensions for each Failure Mode ============
 
 
 fig, ax = plt.subplots()
 
 for lug in luglst:
     # Run checks
-    lug_bearing=bc.bearing_check(lug, Fx=loads["R_x"]*(safety_factor+1), Fz=loads["R_z"]*(safety_factor+1))
+    lug_bearing=bc.bearing_check(lug, Fx=loads_["R_x"]*(safety_factor+1), Fz=loads_["R_z"]*(safety_factor+1))
     lug_pattern=pattern_check(lug)
-    fs.fastener_yield_check(lug,loads["R_y"]*(safety_factor+1))
-    pull_through_forces(loads["M_1"]*(safety_factor+1), loads["M_3"]*(safety_factor+1), loads["R_y"]*(safety_factor+1), lug)
-    tc.thermal_stress_check_oup(lug, Mz=loads["M_3"]*(safety_factor+1), Fy=loads["R_y"]*(safety_factor+1))
-    print("pull through, fastener_yield, bearing_t2, bearing_t3, thermal")
+    fs.fastener_yield_check(lug,loads_["R_y"]*(safety_factor+1))
+    pull_through_forces(loads_["M_1"]*(safety_factor+1), loads_["M_3"]*(safety_factor+1), loads_["R_y"]*(safety_factor+1), lug)
+    tc.thermal_stress_check_oup(lug, Mz=loads_["M_3"]*(safety_factor+1), Fy=loads_["R_y"]*(safety_factor+1))
+    print("pull_through (pt),\n fastener_yield (fy),\n bearing_t2 (b2),\n bearing_t3 (b3),\n thermal(t)")
+    print("Results:")
+    print("             pt fy b2 b3 t")
     for i, fastener in enumerate(lug.fastenerlst):
-        print(f"fastener_{i}: {int(fastener.pull_through)} {int(fastener.yield_handling)} {int(fastener.bearing_t2)} {int(fastener.bearing_t3)} {int(fastener.pull_through_thermal)}")        
+        print(f"fastener_{i}:  {int(fastener.pull_through)}  {int(fastener.yield_handling)}  {int(fastener.bearing_t2)}  {int(fastener.bearing_t3)}  {int(fastener.pull_through_thermal)}")        
 
 
     # Lug flange dimensions
     M_z = max(loads_["M_1"], loads_["M_2"])
-    stress_t = 572  # Material ultimate tensile strength in MPa
-    W = 100  # M from the figure in mm, this is what is actually being used for the iteration
+    stress_t = dt.material_properties(lug_material)[0]  # Material ultimate tensile strength in MPa
+    W = 30  # M from the figure in mm, this is what is actually being used for the iteration
 
     D, T, E = fd.lug_flange_dimensions(W)  # All in mm
     F = fd.lug_tension(stress_t, W, D, T)  # All in N
@@ -95,7 +96,7 @@ for lug in luglst:
     load_check = fd.check(stress_t, loads_["N_x"], loads_["N_y"], F, stress_b)
 
     print(D, T, E, F, stress_b)
-    print(load_check)
+    print(f"load_check: {load_check}")
 
     # If it spits out true, the material or W can be changed to something smaller / weaker,
     # however, this will probably withstand the loads even if its lead-thin 
@@ -110,9 +111,9 @@ for lug in luglst:
     for f in lug.fastenerlst:
 
         # Determine color based on bearing checks
-        if not f.bearing_t2:
+        if not f.bearing_t2 or not f.bearing_t3:
             color = 'red'      # fails plate thickness t2
-        elif not f.bearing_t3:
+        elif not f.pull_through:
             color = 'blue'     # fails lug wall t3
         else:
             color = 'green'    # OK
@@ -136,10 +137,8 @@ for lug in luglst:
         linewidth=2
     ))
     ax.add_patch(rects[-1])
-# ensure circles are drawn correctly
-check = pattern_check(luglst[0])
+
 ax.set_aspect('equal', adjustable='box')
 ax.relim()
 ax.autoscale_view()
-#print (moi.MOI_PIN(luglst[0])) 
 plt.show()

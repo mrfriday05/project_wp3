@@ -35,7 +35,6 @@ def Finplanetot(lug, Fx, Fz):
 
 def bearing_check(lug, Fx, Fz):
     Fx_lst, Fz_lst = Finplanetot(lug, Fx, Fz)
-    print(Fx_lst, Fz_lst)
     not_failed = True
     for i, fastener in enumerate(lug.fastenerlst):
         fastener.bearing_t2 = True
@@ -44,7 +43,6 @@ def bearing_check(lug, Fx, Fz):
         Fz_tot = Fz_lst[i]
         sigma_bearing = (Fx_tot**2 + Fz_tot**2)**0.5 / (lug.t2*fastener.D2)
         sigma_bearing_wall = (Fx_tot**2 + Fz_tot**2)**0.5 / (lug.t3*fastener.D2)
-        print(f"Bearing Stress on lug t2 = {sigma_bearing} Pa, Allowable = {lug.sigma_allow} Pa")
         if sigma_bearing > lug.sigma_allow:
             fastener.bearing_t2 = False
         if sigma_bearing_wall > lug.sigma_allow_lug_wall:
