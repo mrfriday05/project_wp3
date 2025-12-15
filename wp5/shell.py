@@ -11,6 +11,10 @@ class Shell:
         self.mass = self.calculate_mass()
 
     def calculate_mass(self):
-        volume = 2 * math.pi * self.R * self.L * self.t  # Volume of the shell
+        if self.p >=0:
+            volume = 2*math.pi * self.R * self.t * (self.L-2*self.R) + 4*math.pi*self.R**2*self.t  # Volume of the shell with hemispherical ends
+        else:
+            volume = 2 * math.pi * self.R * self.L * self.t  # Volume of the shell
         mass = volume * self.material_props.density 
+        self.mass = mass
         return mass
